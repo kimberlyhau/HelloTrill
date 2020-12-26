@@ -12,7 +12,7 @@ namespace HelloTrill
             /**
              * Generating synthetic data
              */
-            var SIZE = 1000;                                    // Size of the data set
+            var SIZE = 100;                                    // Size of the data set
             var listA = new List<int>();                        // A list for storing the data points
             var listB = new List<int>();                        // Another list for storing the data points
             for (int i = 0; i < SIZE; i++)
@@ -39,7 +39,7 @@ namespace HelloTrill
              * Define transformations on the stream(s) 
              */
             var result = streamA
-                    .Select(e => e + 1)                         // Set transformations on the stream.
+                    .Select(e => e * 3)                         // Set transformations on the stream.
                 ;                                               // In this case, Adding 1 to each payload using Select
             
             /**
@@ -48,6 +48,7 @@ namespace HelloTrill
             result
                 .ToStreamEventObservable()                      // Convert back to Observable (of StreamEvents)
                 .Where(e => e.IsData)                           // Only pick data events from the stream
+                .Where(e => e.Payload % 2==0)   
                 .ForEach(e => { Console.WriteLine(e); })        // Print the events to the console
                 ;
         }
