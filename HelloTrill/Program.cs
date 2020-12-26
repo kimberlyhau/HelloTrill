@@ -40,6 +40,7 @@ namespace HelloTrill
              */
             var result = streamA
                     .Select(e => e * 3)                         // Set transformations on the stream.
+                    .Where(e => e% 2==0)
                 ;                                               // In this case, Adding 1 to each payload using Select
             
             /**
@@ -48,7 +49,6 @@ namespace HelloTrill
             result
                 .ToStreamEventObservable()                      // Convert back to Observable (of StreamEvents)
                 .Where(e => e.IsData)                           // Only pick data events from the stream
-                .Where(e => e.Payload % 2==0)   
                 .ForEach(e => { Console.WriteLine(e); })        // Print the events to the console
                 ;
         }
