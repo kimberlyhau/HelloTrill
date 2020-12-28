@@ -39,8 +39,10 @@ namespace HelloTrill
              * Define transformations on the stream(s) 
              */
             var result = streamA
-                    .Select(e => e * 3)                         // Set transformations on the stream.
-                    .Where(e => e% 2==0)
+                .Select(e => e * 3) // Set transformations on the stream.
+                .Where(e => e % 2 == 0)
+                .TumblingWindowLifetime(10, 10)
+                .Sum(e=> e)
                 ;                                               // In this case, Adding 1 to each payload using Select
             
             /**
