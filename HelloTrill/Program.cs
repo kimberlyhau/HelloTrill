@@ -44,7 +44,7 @@ namespace HelloTrill
                 .Where(e => e % 2 == 0)
                 .TumblingWindowLifetime(10, 10)
                 .Sum(e=> e)
-                .Join(streamB, e=> 1, e=> 1, (left, right) => (left+right))
+                .Join(streamB, e=> 1, e=> 1, (left, right) => new {left, right})
                 ;                                               // In this case, Adding 1 to each payload using Select
             
             /**
