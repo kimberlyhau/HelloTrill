@@ -46,11 +46,22 @@ namespace HelloTrill
                 .Sum(e=> e)
                 .Join(streamB, e=> 1, e=> 1, (left, right) => new {left, right})
                 ;                                               // In this case, Adding 1 to each payload using Select
-            
+            var result2 = streamB
+                    .TumblingWindowLifetime(10, 10)
+                    .Sum(e => e)
+                    .Join(streamA, e=>1, e=>1,(left, right) => new {left, right} )
+                ;
             /**
              * Print out the result
              */
+            /*
             result
+                .ToStreamEventObservable()                      // Convert back to Observable (of StreamEvents)
+                .Where(e => e.IsData)                           // Only pick data events from the stream
+                .ForEach(e => { Console.WriteLine(e); })        // Print the events to the console
+                ;
+            */
+            result2
                 .ToStreamEventObservable()                      // Convert back to Observable (of StreamEvents)
                 .Where(e => e.IsData)                           // Only pick data events from the stream
                 .ForEach(e => { Console.WriteLine(e); })        // Print the events to the console
