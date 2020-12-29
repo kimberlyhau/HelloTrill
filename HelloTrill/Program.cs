@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reactive.Linq;
+using Microsoft.CodeAnalysis;
 using Microsoft.StreamProcessing;
 
 namespace HelloTrill
@@ -43,6 +44,7 @@ namespace HelloTrill
                 .Where(e => e % 2 == 0)
                 .TumblingWindowLifetime(10, 10)
                 .Sum(e=> e)
+                .Join(streamB, e=> 1, e=> 1, (left, right) => (left+right))
                 ;                                               // In this case, Adding 1 to each payload using Select
             
             /**
