@@ -51,21 +51,37 @@ namespace HelloTrill
                     .Sum(e=> e)
                     .Join(s,  e=> 1, e=> 1, (left, right) => new {left, right}))
                 ;                                               // In this case, Adding 1 to each payload using Select
-            var result2 = streamB
-                    .TumblingWindowLifetime(10, 10)
-                    .Sum(e => e)
-                    .Join(streamA, e=>1, e=>1,(left, right) => new {left, right} )
+            var result2 = streamA
+                    //.TumblingWindowLifetime(10, 0)
+                    //.Sum(e => e)
+                    //.Join(streamA, e=>1, e=>1,(left, right) => new {left, right} )
+                ;
+            var result3 = streamA
+                    .Multicast(s=>s
+                        .AlterEventLifetime(e => e + 1, 1)
+                        .TumblingWindowLifetime(10,0)
+                        .AlterEventLifetime(e=>e-10, 10)
+                        .Average(e=>e)
+                        .Join(s, e=>1, e=>1, (left, right)=> (right-left))
+                    )
+                    .Multicast(s=>s
+                        .Select (e=> e*e)
+                        .AlterEventLifetime(e => e + 1, 1)
+                        .TumblingWindowLifetime(10,0)
+                        .AlterEventLifetime(e=>e-10, 10)
+                        .Sum(e=>e)
+                        .Select(e=>Math.Sqrt(e/10))
+                        .Join(s, e=>1, e=>1, (left, right)=>(right/left))
+                    )
                 ;
             /**
              * Print out the result
              */
-            
-            result
+            result3
                 .ToStreamEventObservable()                      // Convert back to Observable (of StreamEvents)
                 .Where(e => e.IsData)                           // Only pick data events from the stream
                 .ForEach(e => { Console.WriteLine(e); })        // Print the events to the console
                 ;
-            
         }
     }
 }
