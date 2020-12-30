@@ -21,7 +21,8 @@ namespace HelloTrill
                 listA.Add(i);                                    // Populate listA with dummy data
                 listB.Add(i);                                    // Populate listB with dummy data
             }
-            
+
+            var window_size = 10;
             /**
              * Creating lists created above to Trill streams
              */
@@ -45,33 +46,32 @@ namespace HelloTrill
                 //.TumblingWindowLifetime(10, 10)
                 //.Sum(e=> e)
                 //.Join(streamB, e=> 1, e=> 1, (left, right) => new {left, right})
-                //.Join(streamA, e=> 1, e=> 1, (left, right) => new {left, right})
                 .Multicast(s=> s
                     .TumblingWindowLifetime(10, 10)
                     .Sum(e=> e)
                     .Join(s,  e=> 1, e=> 1, (left, right) => new {left, right}))
                 ;                                               // In this case, Adding 1 to each payload using Select
-            var result2 = streamA
-                    //.TumblingWindowLifetime(10, 0)
-                    //.Sum(e => e)
-                    //.Join(streamA, e=>1, e=>1,(left, right) => new {left, right} )
-                ;
+          
             var result3 = streamA
                     .Multicast(s=>s
-                        .AlterEventLifetime(e => e + 1, 1)
-                        .TumblingWindowLifetime(10,0)
-                        .AlterEventLifetime(e=>e-10, 10)
+                        .ShiftEventLifetime(1)
+                        //.AlterEventLifetime(e => e + 1, 1)
+                        .TumblingWindowLifetime(window_size,0)
+                        .ShiftEventLifetime(-window_size)
+                        //.AlterEventLifetime(e=>e-window_size, window_size)
                         .Average(e=>e)
                         .Join(s, e=>1, e=>1, (left, right)=> (right-left))
                     )
                     .Multicast(s=>s
                         .Select (e=> e*e)
-                        .AlterEventLifetime(e => e + 1, 1)
-                        .TumblingWindowLifetime(10,0)
-                        .AlterEventLifetime(e=>e-10, 10)
-                        .Sum(e=>e)
-                        .Select(e=>Math.Sqrt(e/10))
-                        .Join(s, e=>1, e=>1, (left, right)=>(right/left))
+                        .ShiftEventLifetime(1)
+                        //.AlterEventLifetime(e => e + 1, 1)
+                        .TumblingWindowLifetime(window_size,0)
+                        .ShiftEventLifetime(-10)
+                        //.AlterEventLifetime(e=>e-window_size, window_size)
+                        .Average(e=>e)
+                        .Select(e=>Math.Sqrt(e))
+                        .Join(s, e=>1, e=>1, (left, right)=>(right/ left))
                     )
                 ;
             /**
