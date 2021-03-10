@@ -121,13 +121,14 @@ namespace HelloTrill
             //Similar to the previous exercise, fill the gaps smaller than a given gap tolerance length in the stream.
             //However, every dummy event you use to fill the gap should have a value same as the mean of the signal
             //values that fall within the last a W sized window from the point.
+            var windowsize = 5;
             var fillgapswithmean = streamA
                     .AlterEventLifetime(e => e, gapsize)
                     .Multicast(s => s
                         .ClipEventDuration(s, e => 1, e => 1))
                     .Chop(0, 1)
                     .Multicast(s=>
-                        s.HoppingWindowLifetime(5,1)
+                        s.HoppingWindowLifetime(windowsize,1)
                             .Average(e=>e)
                             .Join(s, l=>1, (r)=> 1, (left, right)=> new{left, right}))
                     .Select((ts, val)=> (ts==val.right)? val.right: val.left)
