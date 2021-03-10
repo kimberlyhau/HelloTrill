@@ -147,16 +147,16 @@ namespace HelloTrill
                 .AlterEventLifetime(e => e + period1, 1)
                 .Join(s, e => 1, e => 1, (left, right) => new {left, right}))
                  
-                   .AlterEventLifetime(e => e - period1, period1)
+            .AlterEventLifetime(e => e - period1, period1)
                
-                   .Chop(0, period2)
+            .Chop(0, period2)
                
-                   .Select((ts, val) => val.left + (ts % period1) * (val.right - val.left) / period1)
-                   .AlterEventDuration(1)
-                   .Multicast(s=>
-                       s.Select((ts, val)=>((ts-offset)%period2==0) ? 1:0)
-                       .Where(val=>val ==1)
-                       .Join(s, e=>1, e=>1, (left, right)=> right))
+            .Select((ts, val) => val.left + (ts % period1) * (val.right - val.left) / period1)
+            .AlterEventDuration(1)
+            .Multicast(s=>
+                 s.Select((ts, val)=>((ts-offset)%period2==0) ? 1:0)
+                 .Where(val=>val ==1)
+                 .Join(s, e=>1, e=>1, (left, right)=> right))
                        
             ;
 
