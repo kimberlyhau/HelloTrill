@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO.MemoryMappedFiles;
 using System.Reactive.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.StreamProcessing;
@@ -16,11 +17,27 @@ namespace HelloTrill
             var SIZE = 100;                                    // Size of the data set
             var listA = new List<int>();                        // A list for storing the data points
             var listB = new List<int>();                        // Another list for storing the data points
-            for (int i = 0; i < SIZE; i++)
+            for (int i = 0; i < 5; i++)
             {
                 listA.Add(i);                                    // Populate listA with dummy data
-                listB.Add(i);                                    // Populate listB with dummy data
             }
+            for (int i = 8; i < 10; i++)
+            {
+                listA.Add(i);                                    // Populate listA with dummy data
+            }
+
+            for (int i = 15; i < 20; i++)
+            {
+                listA.Add(i);                                    // Populate listA with dummy data
+            }
+
+
+            for (int i = 0; i < 6; i++)
+            {
+                listB.Add(i*2+1);
+            }
+            
+            
 
             var window_size = 10;
             /**
@@ -34,7 +51,7 @@ namespace HelloTrill
             
             var streamB = listB                                 // Creating streamB (not using yet) similar to streamA.
                     .ToObservable()
-                    .ToTemporalStreamable(e => e, e => e + 1)
+                    .ToTemporalStreamable(e => e, e => e+1)
                 ;
             
             /**
@@ -52,7 +69,7 @@ namespace HelloTrill
                     .Join(s,  e=> 1, e=> 1, (left, right) => new {left, right}))
                 ;                                               // In this case, Adding 1 to each payload using Select
           
-            var result3 = streamA
+            var normalization = streamA
                     .Multicast(s=>s
                         .ShiftEventLifetime(1)
                         //.AlterEventLifetime(e => e + 1, 1)
@@ -67,21 +84,88 @@ namespace HelloTrill
                         .ShiftEventLifetime(1)
                         //.AlterEventLifetime(e => e + 1, 1)
                         .TumblingWindowLifetime(window_size,0)
-                        .ShiftEventLifetime(-10)
+                        .ShiftEventLifetime(-window_size)
                         //.AlterEventLifetime(e=>e-window_size, window_size)
                         .Average(e=>e)
                         .Select(e=>Math.Sqrt(e))
                         .Join(s, e=>1, e=>1, (left, right)=>(right/ left))
                     )
                 ;
-            /**
-             * Print out the result
-             */
-            result3
+            var rollingmean = streamA
+                    .HoppingWindowLifetime(10, 1)
+                    .Average(e=>e)
+                ;
+
+            var clipevent = streamA
+                .AlterEventLifetime(e => e, StreamEvent.InfinitySyncTime)
+                .Multicast(s => s
+                    .ClipEventDuration(s, e => 1, e => 1))
+                .Join(streamB, e=>1, e=>1, (left, right)=>left)
+                ;
+            
+            var dummyevents = clipevent
+                .Chop(0,1)
+                .Select((val, e) => val)
+                ;
+
+            var gapsize = 3;
+            var fillgaps2 = streamA
+                .AlterEventLifetime(e => e, gapsize)
+                .Multicast(s => s
+                    .ClipEventDuration(s, e => 1, e => 1))
+                .AlterEventLifetime(start => start, (start, end) => (end - start == gapsize) ? 1 : end - start)
+                .Chop(0, 1)
+                .Select((val, e) => val)
+                ;
+
+            //Similar to the previous exercise, fill the gaps smaller than a given gap tolerance length in the stream.
+            //However, every dummy event you use to fill the gap should have a value same as the mean of the signal
+            //values that fall within the last a W sized window from the point.
+            var fillgapswithmean = streamA
+                    .AlterEventLifetime(e => e, gapsize)
+                    .Multicast(s => s
+                        .ClipEventDuration(s, e => 1, e => 1))
+                    .Chop(0, 1)
+                    .Multicast(s=>
+                        s.HoppingWindowLifetime(5,1)
+                            .Average(e=>e)
+                            .Join(s, l=>1, (r)=> 1, (left, right)=> new{left, right}))
+                    .Select((ts, val)=> (ts==val.right)? val.right: val.left)
+                ;
+            
+            double freq1 = 0.5;
+            double freq2 = 0.25;
+            
+            int period1 = Convert.ToInt32( 1/freq1);
+            int period2 = Convert.ToInt32( 1/freq2);
+
+            int offset = 1;
+            
+            var sampling = streamB
+            .Multicast(s => s
+                .AlterEventLifetime(e => e + period1, 1)
+                .Join(s, e => 1, e => 1, (left, right) => new {left, right}))
+                 
+                   .AlterEventLifetime(e => e - period1, period1)
+               
+                   .Chop(0, period2)
+               
+                   .Select((ts, val) => val.left + (ts % period1) * (val.right - val.left) / period1)
+                   .AlterEventDuration(1)
+                   .Multicast(s=>
+                       s.Select((ts, val)=>((ts-offset)%period2==0) ? 1:0)
+                       .Where(val=>val ==1)
+                       .Join(s, e=>1, e=>1, (left, right)=> right))
+                       
+            ;
+
+            sampling
                 .ToStreamEventObservable()                      // Convert back to Observable (of StreamEvents)
                 .Where(e => e.IsData)                           // Only pick data events from the stream
                 .ForEach(e => { Console.WriteLine(e); })        // Print the events to the console
                 ;
+            
+           
         }
     }
 }
