@@ -156,8 +156,8 @@ namespace HelloTrill
             .Chop(offset, period2)
                
             .Select((ts, val) => val.left + (ts % period1) * (val.right - val.left) / period1)
-            .AlterEventDuration(1)
-            .TumblingWindowLifetime(period2, offset)
+            .HoppingWindowLifetime(1, period2, offset)
+            //.Select(e=>e)
                 /*
                 .Multicast(s=>
                      s.Select((ts, val)=>((ts-offset)%period2==0) ? 1:0)
